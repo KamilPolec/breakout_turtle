@@ -1,5 +1,11 @@
 import turtle as t
 from random import randint
+import numpy as np
+
+
+def calculate_reflection(direction=None, magnitude=None):
+    r = (direction - (2 * (np.dot(direction, magnitude)) / magnitude))
+    return r
 
 
 def right():
@@ -36,7 +42,6 @@ for block in blocks:
     else:
         block.setpos(blocks[blocks.index(block) - 1].position() + (45, 0))
 
-
 ball.color("gray")
 ball.shapesize(0.7)
 ball.penup()
@@ -56,39 +61,36 @@ t.listen()
 t.onkey(right, "Right")
 t.onkey(left, "Left")
 
+
+ball.speed(1)
+ball.setheading(100)
 while len(blocks) > 0:
-    ball.speed(2)
     ball.forward(10)
     for block in blocks:
         if ball.xcor() + 20 >= block.xcor() >= ball.xcor() - 20 and ball.ycor() >= block.ycor() - 20 or ball.ycor() > 280:
             block.speed(0)
-            # block.hideturtle()
             block.setpos(500, 500)
-            ball.speed(0)
-            ball.setheading(randint(181, 359))
-            ball.speed() + randint(0, 3)
+            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()))
     if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 20:
-        ball.speed(0)
-        ball.setheading(randint(1, 179))
+        ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()))
         ball.speed() + randint(0, 3)
+    #moving upwards
     if 180 > ball.heading() > 0:
+        #right bounce
         if ball.xcor() > 230:
-            ball.speed(0)
-            ball.setheading(randint(91, 180))
-            ball.speed() + randint(0, 3)
+            print(f"Before {ball.heading()}")
+            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
+            print(f"After {ball.heading()}")
+        #left bounce
         elif ball.xcor() < -230:
-            ball.speed(0)
-            ball.setheading(randint(1, 89))
-            ball.speed() + randint(0, 3)
+            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
     else:
+        #moving downwards
         if ball.xcor() > 230:
-            ball.speed(0)
-            ball.setheading(randint(181, 269))
-            ball.speed() + randint(0, 3)
+            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
+
         elif ball.xcor() < -230:
-            ball.speed(0)
-            ball.setheading(randint(271, 359))
-            ball.speed() + randint(0, 3)
+            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
     if ball.ycor() < -300:
         print("You Lost")
         break
