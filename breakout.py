@@ -25,7 +25,7 @@ t.screensize(450, 550)
 t.tracer(n=False)
 
 paddle = t.Turtle("square")
-ball = t.Turtle("square")
+ball = t.Turtle("circle")
 
 blocks = []
 for i in range(0, 55):
@@ -36,9 +36,9 @@ for block in blocks:
     block.color((randint(0, 255), randint(0, 255), randint(0, 255)))
     block.shapesize(0.7, 2, 1)
     block.penup()
-    blocks[0].setpos(-230, 255)
+    blocks[0].setpos(-230, 215)
     if blocks.index(block) % 11 == 0:
-        block.setpos(blocks[blocks.index(block) - 11].position() + (0, -20))
+        block.setpos(blocks[blocks.index(block) - 11].position() + (0, -25))
     else:
         block.setpos(blocks[blocks.index(block) - 1].position() + (45, 0))
 
@@ -48,7 +48,7 @@ ball.penup()
 ball.left(90)
 
 paddle.color("white")
-paddle.shapesize(1, 4, 1)
+paddle.shapesize(0.5, 4, 1)
 paddle.penup()
 paddle.sety(-270)
 
@@ -62,37 +62,34 @@ t.onkey(right, "Right")
 t.onkey(left, "Left")
 
 
-ball.speed(1)
-ball.setheading(100)
-while len(blocks) > 0:
-    ball.forward(10)
-    for block in blocks:
-        if ball.xcor() + 20 >= block.xcor() >= ball.xcor() - 20 and ball.ycor() >= block.ycor() - 20 or ball.ycor() > 280:
-            block.speed(0)
-            block.setpos(500, 500)
-            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()))
-    if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 20:
-        ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()))
-        ball.speed() + randint(0, 3)
-    #moving upwards
-    if 180 > ball.heading() > 0:
-        #right bounce
-        if ball.xcor() > 230:
-            print(f"Before {ball.heading()}")
-            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
-            print(f"After {ball.heading()}")
-        #left bounce
-        elif ball.xcor() < -230:
-            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
-    else:
-        #moving downwards
-        if ball.xcor() > 230:
-            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
+ball.speed(3)
 
-        elif ball.xcor() < -230:
-            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180)
-    if ball.ycor() < -300:
+width_limit, height_limit = t.screensize()
+width_limit, height_limit = width_limit/2, height_limit/2
+
+while len(blocks) > 0:
+    ball.forward(5)
+    for index, block in enumerate(blocks):
+        if block.isvisible() and ball.heading() < 180:
+            if ball.xcor() + 20 >= block.xcor() >= ball.xcor() - 20 and ball.ycor() >= block.ycor() - 20:
+                block.ht()
+                t.tracer(False)
+                ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + (block.xcor() - ball.xcor()))
+                t.tracer(True)
+
+    if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12 or ball.ycor() >= height_limit:
+        if ball.heading() > 180:
+            t.tracer(False)
+            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + (paddle.xcor() - ball.xcor()))
+            t.tracer(True)
+    #Side bounce
+    if ball.xcor() >= width_limit or ball.xcor() <= -width_limit:
+        t.tracer(False)
+        ball.setheading((calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180) / 1.02)
+        t.tracer(True)
+    if ball.ycor() <= -height_limit:
         print("You Lost")
         break
+
 
 t.mainloop()
