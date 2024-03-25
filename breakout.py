@@ -3,19 +3,20 @@ from random import randint
 import numpy as np
 
 
-def calculate_reflection(direction=None, magnitude=None):
-    r = (direction - (2 * (np.dot(direction, magnitude)) / magnitude))
+def calculate_reflection(direction=None, normal=None):
+    normal = normal / np.linalg.norm(normal)
+    r = (direction - 2 * (np.dot(direction, normal) / normal))
     return r
 
 
 def right():
     if paddle.xcor() < 200:
-        paddle.setx(paddle.xcor() + 20)
+        paddle.setx(paddle.xcor() + 25)
 
 
 def left():
     if paddle.xcor() > -205:
-        paddle.setx(paddle.xcor() - 20)
+        paddle.setx(paddle.xcor() - 25)
 
 
 t.title("day-87-breakout-game")
@@ -27,9 +28,8 @@ t.tracer(n=False)
 paddle = t.Turtle("square")
 ball = t.Turtle("circle")
 
-blocks = []
-for i in range(0, 55):
-    blocks.append(t.Turtle("square"))
+block_amount = 55
+blocks = [t.Turtle("square") for _ in range(0, block_amount)]
 
 for block in blocks:
     t.colormode(255)
@@ -44,7 +44,7 @@ for block in blocks:
 
 ball.color("gray")
 ball.shapesize(0.7)
-ball.penup()
+# ball.penup()
 ball.left(90)
 
 paddle.color("white")
@@ -61,35 +61,80 @@ t.listen()
 t.onkey(right, "Right")
 t.onkey(left, "Left")
 
-
-ball.speed(3)
+ball.speed(9)
 
 width_limit, height_limit = t.screensize()
-width_limit, height_limit = width_limit/2, height_limit/2
+width_limit, height_limit = width_limit / 2 + 10, height_limit / 2 + 20
 
 while len(blocks) > 0:
     ball.forward(5)
     for index, block in enumerate(blocks):
-        if block.isvisible() and ball.heading() < 180:
-            if ball.xcor() + 20 >= block.xcor() >= ball.xcor() - 20 and ball.ycor() >= block.ycor() - 20:
-                block.ht()
-                t.tracer(False)
-                ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + (block.xcor() - ball.xcor()))
-                t.tracer(True)
+        if block.isvisible():
 
-    if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12 or ball.ycor() >= height_limit:
+            right_side = block.xcor() + 20
+            left_side = block.xcor() - 20
+            top = block.ycor() + 20
+            bottom = block.ycor() - 20
+
+            # TODO: Ball Hitbox
+            ball_y = ball.ycor() - 20 and ball.ycor() + 20
+            ball_x = ball.ycor() + 20 and ball.ycor() - 20
+
+            on_the_sides = right_side >= ball.xcor() >= left_side
+            in_top_bottom = top >= ball.ycor() >= bottom
+
+            within_hitbox = on_the_sides and in_top_bottom
+
+
+            if within_hitbox:
+                if block.xcor() + 17 < ball.xcor() < right_side or block.xcor() - 17 > ball.xcor() > left_side:
+                    print("side hit")
+                    block.color("white")
+
+                    t.tracer(False)
+                    print(ball.heading())
+                    ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()) + 180)
+                    print(ball.heading())
+                    ball.forward(1)
+                    t.tracer(True)
+                    block.ht()
+                elif ball.ycor() < top or ball.ycor() > bottom:
+                    block.color("white")
+
+                    t.tracer(False)
+                    if ball.heading() < 180:
+                        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()) + (
+                                block.xcor() - ball.xcor()))
+                        ball.forward(5)
+                    elif ball.heading() > 180:
+                        ball.setheading(ball.heading() + 270)
+                    t.tracer(True)
+                    block.ht()
+
+    if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12:
         if ball.heading() > 180:
             t.tracer(False)
-            ball.setheading(calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + (paddle.xcor() - ball.xcor()))
+            ball.setheading(
+                calculate_reflection(direction=ball.heading(), normal=ball.speed()) + (paddle.xcor() - ball.xcor()))
             t.tracer(True)
-    #Side bounce
+
+    if ball.ycor() >= height_limit:
+        t.tracer(False)
+        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()))
+        ball.forward(5)
+        t.tracer(True)
+    # Side bounce
     if ball.xcor() >= width_limit or ball.xcor() <= -width_limit:
         t.tracer(False)
-        ball.setheading((calculate_reflection(direction=ball.heading(), magnitude=ball.speed()) + 180) / 1.02)
+        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()) + 180 / 1.02)
+        ball.forward(5)
         t.tracer(True)
     if ball.ycor() <= -height_limit:
-        print("You Lost")
-        break
-
+        t.tracer(False)
+        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()))
+        ball.forward(5)
+        t.tracer(True)
+        # print("You Lost")
+        # break
 
 t.mainloop()
