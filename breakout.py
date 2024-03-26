@@ -1,12 +1,42 @@
+import math
 import turtle as t
 from random import randint
 import numpy as np
 
 
 def calculate_reflection(direction=None, normal=None):
-    normal = normal / np.linalg.norm(normal)
-    r = (direction - 2 * (np.dot(direction, normal) / normal))
-    return r
+    if normal == 360 or normal == 180:
+        return (180 - direction) % 360
+    elif normal == 90 or normal == 270:
+        return (360 - direction) % 360
+    else:
+        return (2 * normal - direction) % 360
+
+
+def calculate_reflection_angle(incident_angle, corner_angle):
+    # Convert angles to radians for calculation
+    incident_angle_rad = math.radians(incident_angle)
+    corner_angle_rad = math.radians(corner_angle)
+
+    # Calculate the angle of incidence relative to the normal
+    angle_of_incidence = math.pi / 2 - (corner_angle_rad - incident_angle_rad)
+
+    # Calculate the reflection angle relative to the normal
+    reflection_angle_rad = math.pi / 2 - angle_of_incidence
+
+    # Convert the reflection angle back to degrees
+    reflection_angle = math.degrees(reflection_angle_rad)
+
+    # Adjust the reflection angle based on the corner angle
+    final_reflection_angle = (corner_angle + reflection_angle) % 360
+
+    return final_reflection_angle
+
+def collide(ball, normal):
+    t.tracer(False)
+    ball.setheading(calculate_reflection(direction=ball.heading(), normal=normal))
+    ball.forward(1)
+    t.tracer(True)
 
 
 def right():
@@ -38,9 +68,9 @@ for block in blocks:
     block.penup()
     blocks[0].setpos(-230, 215)
     if blocks.index(block) % 11 == 0:
-        block.setpos(blocks[blocks.index(block) - 11].position() + (0, -25))
+        block.setpos(blocks[blocks.index(block) - 11].position() + (0, -15))
     else:
-        block.setpos(blocks[blocks.index(block) - 1].position() + (45, 0))
+        block.setpos(blocks[blocks.index(block) - 1].position() + (41, 0))
 
 ball.color("gray")
 ball.shapesize(0.7)
@@ -61,80 +91,110 @@ t.listen()
 t.onkey(right, "Right")
 t.onkey(left, "Left")
 
-ball.speed(9)
+ball.speed(2)
 
 width_limit, height_limit = t.screensize()
 width_limit, height_limit = width_limit / 2 + 10, height_limit / 2 + 20
 
+left_lower = range(40, 51)
+left_upper = range(310, 320)
+right_upper = range(220, 231)
+right_lower = range(130, 141)
+corner_angles = []
+for index, _ in enumerate(left_lower):
+    corner_angles.append(_)
+    corner_angles.append(left_upper[index - 1])
+    corner_angles.append(right_upper[index - 1])
+    corner_angles.append(right_lower[index - 1])
+
+print(corner_angles)
+
 while len(blocks) > 0:
-    ball.forward(5)
-    for index, block in enumerate(blocks):
-        if block.isvisible():
+    t.tracer(False)
+    for _ in range(0,5):
+        ball.forward(1)
+        for index, block in enumerate(blocks):
+            if block.isvisible():
 
-            right_side = block.xcor() + 20
-            left_side = block.xcor() - 20
-            top = block.ycor() + 20
-            bottom = block.ycor() - 20
+                block_hitbox = {
+                    'top': block.ycor() + 20,
+                    'bottom': block.ycor() - 20,
+                    'right': block.xcor() + 20,
+                    'left': block.xcor() - 20}
 
-            # TODO: Ball Hitbox
-            ball_y = ball.ycor() - 20 and ball.ycor() + 20
-            ball_x = ball.ycor() + 20 and ball.ycor() - 20
+                on_the_sides = block_hitbox['right'] >= ball.xcor() >= block_hitbox['left']
+                in_top_bottom = block_hitbox['top'] >= ball.ycor() >= block_hitbox['bottom']
 
-            on_the_sides = right_side >= ball.xcor() >= left_side
-            in_top_bottom = top >= ball.ycor() >= bottom
+                within_hitbox = on_the_sides and in_top_bottom
 
-            within_hitbox = on_the_sides and in_top_bottom
+                right_hit = block_hitbox['right'] - 2 < ball.xcor() < block_hitbox['right'] and \
+                            block_hitbox["top"] - 2 > ball.ycor() > block_hitbox["bottom"] + 2
 
+                left_hit = block_hitbox['left'] + 2 > ball.xcor() > block_hitbox['left'] and \
+                           block_hitbox["top"] - 2 > ball.ycor() > block_hitbox["bottom"] + 2
+                vertical_hit = ball.ycor() < block_hitbox['top'] or ball.ycor() > block_hitbox['bottom']
 
-            if within_hitbox:
-                if block.xcor() + 17 < ball.xcor() < right_side or block.xcor() - 17 > ball.xcor() > left_side:
-                    print("side hit")
-                    block.color("white")
+                corner = ball.ycor() >= block_hitbox["top"] - 1 and ball.xcor() >= block_hitbox["left"] + 1 or \
+                         ball.ycor() <= block_hitbox["bottom"] + 1 and ball.xcor() >= block_hitbox["left"] + 1 or \
+                         ball.ycor() >= block_hitbox["top"] - 1 and ball.xcor() <= block_hitbox["right"] - 1 or \
+                         ball.ycor() <= block_hitbox["bottom"] + 1 and ball.xcor() <= block_hitbox["right"] - 1
 
-                    t.tracer(False)
-                    print(ball.heading())
-                    ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()) + 180)
-                    print(ball.heading())
-                    ball.forward(1)
-                    t.tracer(True)
-                    block.ht()
-                elif ball.ycor() < top or ball.ycor() > bottom:
-                    block.color("white")
+                moving_left = 90 < ball.heading() < 270
+                moving_right = 0 < ball.heading() < 90 or 270 < ball.heading() < 360
 
-                    t.tracer(False)
-                    if ball.heading() < 180:
-                        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()) + (
-                                block.xcor() - ball.xcor()))
-                        ball.forward(5)
-                    elif ball.heading() > 180:
-                        ball.setheading(ball.heading() + 270)
-                    t.tracer(True)
-                    block.ht()
+                if within_hitbox:
+                    print(round(ball.heading()))
+                    if corner and round(ball.heading()) in corner_angles:
+                        if ball.xcor() > block.xcor() and moving_right or ball.xcor() < block.xcor() and moving_left:
+                            print("corner inverted")
+                            block.color("white")
+                            collide(ball=ball, normal=90)
+                            block.ht()
+                        else:
+                            print("corner")
+                            block.color("white")
+                            collide(ball=ball, normal=45)
+                            block.ht()
+                    elif right_hit:
+                        if 0 < ball.heading() < 90 or 270 < ball.heading() < 360:
+                            block.color("white")
+                            collide(ball=ball, normal=90)
+                            block.ht()
+                        else:
+                            print("side hit")
+                            block.color("white")
+                            collide(ball=ball, normal=180)
+                            block.ht()
+                    elif left_hit:
+                        if moving_left:
+                            block.color("white")
+                            collide(ball=ball, normal=90)
+                            block.ht()
+                        else:
+                            print("side hit")
+                            block.color("white")
+                            collide(ball=ball, normal=180)
+                            block.ht()
+                    elif vertical_hit:
+                        print("vertical hit")
+                        block.color("white")
+                        collide(ball=ball, normal=90)
+                        block.ht()
 
-    if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12:
-        if ball.heading() > 180:
-            t.tracer(False)
-            ball.setheading(
-                calculate_reflection(direction=ball.heading(), normal=ball.speed()) + (paddle.xcor() - ball.xcor()))
-            t.tracer(True)
+        if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12:
+            collide(ball=ball, normal=270)
+            ball.setheading(ball.heading() + paddle.xcor() - ball.xcor())
 
-    if ball.ycor() >= height_limit:
-        t.tracer(False)
-        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()))
-        ball.forward(5)
-        t.tracer(True)
-    # Side bounce
-    if ball.xcor() >= width_limit or ball.xcor() <= -width_limit:
-        t.tracer(False)
-        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()) + 180 / 1.02)
-        ball.forward(5)
-        t.tracer(True)
-    if ball.ycor() <= -height_limit:
-        t.tracer(False)
-        ball.setheading(calculate_reflection(direction=ball.heading(), normal=ball.speed()))
-        ball.forward(5)
-        t.tracer(True)
-        # print("You Lost")
-        # break
+        if ball.ycor() >= height_limit:
+            collide(ball=ball, normal=90)
+        # Side bounce
+        if ball.xcor() >= width_limit or ball.xcor() <= -width_limit:
+            collide(ball=ball, normal=360)
+            ball.setheading(ball.heading() / 1.02)
 
+        if ball.ycor() <= -height_limit:
+            collide(ball=ball, normal=270)
+            # print("You Lost")
+            # break
+    t.tracer(True)
 t.mainloop()
