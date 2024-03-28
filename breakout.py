@@ -4,37 +4,19 @@ from random import randint
 import numpy as np
 
 
-def calculate_reflection(direction=None, normal=None):
+def return_reflection(direction=None, normal=None):
     if normal == 360 or normal == 180:
         return (180 - direction) % 360
     elif normal == 90 or normal == 270:
         return (360 - direction) % 360
     else:
-        return (2 * normal - direction) % 360
+        return 180 + (2 * normal - direction % 360)
 
-
-def calculate_reflection_angle(incident_angle, corner_angle):
-    # Convert angles to radians for calculation
-    incident_angle_rad = math.radians(incident_angle)
-    corner_angle_rad = math.radians(corner_angle)
-
-    # Calculate the angle of incidence relative to the normal
-    angle_of_incidence = math.pi / 2 - (corner_angle_rad - incident_angle_rad)
-
-    # Calculate the reflection angle relative to the normal
-    reflection_angle_rad = math.pi / 2 - angle_of_incidence
-
-    # Convert the reflection angle back to degrees
-    reflection_angle = math.degrees(reflection_angle_rad)
-
-    # Adjust the reflection angle based on the corner angle
-    final_reflection_angle = (corner_angle + reflection_angle) % 360
-
-    return final_reflection_angle
 
 def collide(ball, normal):
+
     t.tracer(False)
-    ball.setheading(calculate_reflection(direction=ball.heading(), normal=normal))
+    ball.setheading(return_reflection(direction=ball.heading(), normal=normal))
     ball.forward(1)
     t.tracer(True)
 
@@ -66,7 +48,7 @@ for block in blocks:
     block.color((randint(0, 255), randint(0, 255), randint(0, 255)))
     block.shapesize(0.7, 2, 1)
     block.penup()
-    blocks[0].setpos(-230, 215)
+    blocks[0].setpos(-210, 215)
     if blocks.index(block) % 11 == 0:
         block.setpos(blocks[blocks.index(block) - 11].position() + (0, -15))
     else:
@@ -74,7 +56,7 @@ for block in blocks:
 
 ball.color("gray")
 ball.shapesize(0.7)
-# ball.penup()
+ball.penup()
 ball.left(90)
 
 paddle.color("white")
@@ -91,7 +73,7 @@ t.listen()
 t.onkey(right, "Right")
 t.onkey(left, "Left")
 
-ball.speed(2)
+ball.speed(1)
 
 width_limit, height_limit = t.screensize()
 width_limit, height_limit = width_limit / 2 + 10, height_limit / 2 + 20
@@ -111,7 +93,7 @@ print(corner_angles)
 
 while len(blocks) > 0:
     t.tracer(False)
-    for _ in range(0,5):
+    for _ in range(0, 5):
         ball.forward(1)
         for index, block in enumerate(blocks):
             if block.isvisible():
@@ -134,18 +116,23 @@ while len(blocks) > 0:
                            block_hitbox["top"] - 2 > ball.ycor() > block_hitbox["bottom"] + 2
                 vertical_hit = ball.ycor() < block_hitbox['top'] or ball.ycor() > block_hitbox['bottom']
 
-                corner = ball.ycor() >= block_hitbox["top"] - 1 and ball.xcor() >= block_hitbox["left"] + 1 or \
-                         ball.ycor() <= block_hitbox["bottom"] + 1 and ball.xcor() >= block_hitbox["left"] + 1 or \
-                         ball.ycor() >= block_hitbox["top"] - 1 and ball.xcor() <= block_hitbox["right"] - 1 or \
-                         ball.ycor() <= block_hitbox["bottom"] + 1 and ball.xcor() <= block_hitbox["right"] - 1
+                top_right_corner = ball.ycor() >= block_hitbox["top"] - 1 and ball.xcor() <= block_hitbox["right"] - 1
+                top_left_corner = ball.ycor() >= block_hitbox["top"] - 1 and ball.xcor() >= block_hitbox["left"] + 1
+                bottom_right_corner = ball.ycor() <= block_hitbox["bottom"] + 1 and ball.xcor() <= block_hitbox[
+                    "right"] - 1
+                bottom_left_corner = ball.ycor() <= block_hitbox["bottom"] + 1 and ball.xcor() >= block_hitbox[
+                    "left"] + 1
+
+                corner_hit = top_left_corner or bottom_left_corner or top_right_corner or bottom_right_corner
 
                 moving_left = 90 < ball.heading() < 270
                 moving_right = 0 < ball.heading() < 90 or 270 < ball.heading() < 360
 
                 if within_hitbox:
-                    print(round(ball.heading()))
-                    if corner and round(ball.heading()) in corner_angles:
-                        if ball.xcor() > block.xcor() and moving_right or ball.xcor() < block.xcor() and moving_left:
+                    if corner_hit and round(ball.heading()) in corner_angles:
+                        to_the_right = ball.xcor() > block.xcor()
+                        to_the_left = ball.xcor() < block.xcor()
+                        if to_the_right and moving_right or to_the_left and moving_left:
                             print("corner inverted")
                             block.color("white")
                             collide(ball=ball, normal=90)
@@ -153,10 +140,11 @@ while len(blocks) > 0:
                         else:
                             print("corner")
                             block.color("white")
-                            collide(ball=ball, normal=45)
+                            ball.setheading(ball.heading() + 180)
                             block.ht()
+
                     elif right_hit:
-                        if 0 < ball.heading() < 90 or 270 < ball.heading() < 360:
+                        if moving_right:
                             block.color("white")
                             collide(ball=ball, normal=90)
                             block.ht()
@@ -182,15 +170,13 @@ while len(blocks) > 0:
                         block.ht()
 
         if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12:
-            collide(ball=ball, normal=270)
-            ball.setheading(ball.heading() + paddle.xcor() - ball.xcor())
+            ball.setheading(return_reflection(direction=ball.heading(), normal=270) + paddle.xcor() - ball.xcor())
 
         if ball.ycor() >= height_limit:
             collide(ball=ball, normal=90)
         # Side bounce
         if ball.xcor() >= width_limit or ball.xcor() <= -width_limit:
-            collide(ball=ball, normal=360)
-            ball.setheading(ball.heading() / 1.02)
+            ball.setheading(return_reflection(direction=ball.heading(), normal=360) / 1.02)
 
         if ball.ycor() <= -height_limit:
             collide(ball=ball, normal=270)
