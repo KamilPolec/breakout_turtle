@@ -14,7 +14,6 @@ def return_reflection(direction=None, normal=None):
 
 
 def collide(ball, normal):
-
     t.tracer(False)
     ball.setheading(return_reflection(direction=ball.heading(), normal=normal))
     ball.forward(1)
@@ -89,18 +88,18 @@ for index, _ in enumerate(left_lower):
     corner_angles.append(right_upper[index - 1])
     corner_angles.append(right_lower[index - 1])
 
-print(corner_angles)
+
 
 while len(blocks) > 0:
     t.tracer(False)
-    for _ in range(0, 5):
+    for _ in range(0, 2):
         ball.forward(1)
         for index, block in enumerate(blocks):
             if block.isvisible():
 
                 block_hitbox = {
-                    'top': block.ycor() + 20,
-                    'bottom': block.ycor() - 20,
+                    'top': block.ycor() + 10,
+                    'bottom': block.ycor() - 10,
                     'right': block.xcor() + 20,
                     'left': block.xcor() - 20}
 
@@ -143,26 +142,12 @@ while len(blocks) > 0:
                             ball.setheading(ball.heading() + 180)
                             block.ht()
 
-                    elif right_hit:
-                        if moving_right:
-                            block.color("white")
-                            collide(ball=ball, normal=90)
-                            block.ht()
-                        else:
-                            print("side hit")
-                            block.color("white")
-                            collide(ball=ball, normal=180)
-                            block.ht()
-                    elif left_hit:
-                        if moving_left:
-                            block.color("white")
-                            collide(ball=ball, normal=90)
-                            block.ht()
-                        else:
-                            print("side hit")
-                            block.color("white")
-                            collide(ball=ball, normal=180)
-                            block.ht()
+                    elif right_hit or left_hit:
+                        print("side hit")
+                        block.color("white")
+                        collide(ball=ball, normal=180)
+                        block.ht()
+
                     elif vertical_hit:
                         print("vertical hit")
                         block.color("white")
@@ -170,17 +155,23 @@ while len(blocks) > 0:
                         block.ht()
 
         if ball.xcor() + 50 >= paddle.xcor() >= ball.xcor() - 50 and ball.ycor() <= paddle.ycor() + 12:
+            t.tracer(False)
             ball.setheading(return_reflection(direction=ball.heading(), normal=270) + paddle.xcor() - ball.xcor())
-
+            ball.forward(1)
+            t.tracer(True)
         if ball.ycor() >= height_limit:
-            collide(ball=ball, normal=90)
+            collide(ball=ball, normal=270)
         # Side bounce
         if ball.xcor() >= width_limit or ball.xcor() <= -width_limit:
-            ball.setheading(return_reflection(direction=ball.heading(), normal=360) / 1.02)
-
+            t.tracer(False)
+            ball.setheading(return_reflection(direction=ball.heading(), normal=180) / 1.02)
+            ball.forward(1)
+            t.tracer(True)
+        # lost ball
         if ball.ycor() <= -height_limit:
-            collide(ball=ball, normal=270)
+            collide(ball=ball, normal=90)
             # print("You Lost")
             # break
+
     t.tracer(True)
 t.mainloop()
